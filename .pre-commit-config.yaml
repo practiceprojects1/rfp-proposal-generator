@@ -1,11 +1,5 @@
 # Pre-commit hooks for security-focused development
 repos:
-  # Security: Detect secrets in code
-  - repo: https://github.com/YNL/ystream
-    rev: 0.1.0
-    hooks:
-      - id: ystream
-
   # Security: Gitleaks for secret detection
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.18.2
