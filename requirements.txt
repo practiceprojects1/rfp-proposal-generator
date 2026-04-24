@@ -17,7 +17,7 @@ pydantic>=2.0.0
 python-dotenv>=1.0.0
 
 # Persistence
-langgraph-checkpoint-postgres>=2.0.0
+langgraph-checkpoint-postgres>=3.0.5
 psycopg2-binary>=2.9.0
 
 # Optional: For PDF parsing
