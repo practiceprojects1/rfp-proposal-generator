@@ -103,6 +103,176 @@ sequenceDiagram
     Agent-->>User: Proposal generated
 ```
 
+### Security Data Flow
+
+```mermaid
+sequenceDiagram
+    participant User as User Browser
+    participant WAF as AWS WAF
+    participant ALB as Application Load Balancer
+    participant UI as React UI (Next.js)
+    participant Cognito as AWS Cognito
+    participant API as FastAPI API
+    participant Agent as Deep Agent
+    participant Bedrock as AWS Bedrock
+    participant Secrets as Secrets Manager
+    participant CloudTrail as CloudTrail/Audit
+
+    User->>WAF: HTTPS Request
+    Note over User,WAF: TLS 1.2+ Encryption
+    WAF->>WAF: Rate Limit Check<br/>(2000 req/min)
+    WAF->>WAF: OWASP Rules Check<br/>(SQLi, XSS, etc.)
+    WAF->>ALB: Forward Request
+    
+    ALB->>ALB: TLS Termination
+    ALB->>UI: Forward to UI Container
+    
+    alt User Not Authenticated
+        UI->>Cognito: Login Request
+        Cognito->>Cognito: Validate Credentials<br/>(MFA if enabled)
+        Cognito->>UI: JWT Tokens<br/>(Access: 60min, Refresh: 30days)
+        UI->>User: Store JWT in Secure Storage
+    end
+    
+    UI->>UI: Attach JWT to Request<br/>(Authorization: Bearer)
+    UI->>API: API Request with JWT
+    
+    API->>API: Validate JWT Signature
+    API->>API: Check Token Expiration
+    API->>API: Verify User Permissions
+    
+    alt JWT Valid
+        API->>Secrets: Fetch Secrets<br/>(via VPC Endpoint)
+        Note over API,Secrets: Encrypted VPC Endpoint<br/>No Internet Gateway
+        Secrets->>API: Return Decrypted Secrets
+        
+        API->>Agent: Invoke Agent with Context
+        Agent->>Agent: Check Processed RFPs<br/>(Memory)
+        Agent->>Bedrock: LLM Inference Request
+        Note over Agent,Bedrock: via VPC Endpoint<br/>Encrypted Channel
+        Bedrock->>Agent: LLM Response
+        Agent->>API: Agent Response
+        
+        CloudTrail->>CloudTrail: Log All API Calls<br/>(Audit Trail)
+        Note over CloudTrail: Immutable Logs<br/>Encrypted Storage
+        
+        API->>UI: Return Response
+        UI->>User: Display Results
+    else JWT Invalid/Expired
+        API->>Cognito: Refresh Token
+        Cognito->>API: New JWT
+        alt Refresh Fails
+            API->>UI: 401 Unauthorized
+            UI->>User: Redirect to Login
+        end
+    end
+    
+    Note over User,CloudTrail: All flows logged in CloudTrail<br/>All data encrypted at rest and in transit
+```
+
+### JWT Authentication Flow
+
+The system uses AWS Cognito for authentication with short-lived JWT tokens:
+
+1. **User Login**:
+   - User submits credentials to Cognito
+   - Cognito validates credentials and optionally requires MFA
+   - Cognito issues JWT tokens:
+     - **Access Token**: 60-minute lifetime (short-lived for security)
+     - **Refresh Token**: 30-day lifetime (for seamless renewal)
+     - **ID Token**: Contains user claims and identity information
+
+2. **Token Storage**:
+   - Access token stored in memory (HTTP-only cookies recommended)
+   - Refresh token stored securely in browser storage
+   - Tokens never exposed in URLs or query parameters
+
+3. **API Authentication**:
+   - UI attaches JWT to every API request: `Authorization: Bearer <token>`
+   - API validates JWT signature using Cognito public keys
+   - API checks token expiration and user permissions
+   - API extracts user context from JWT claims
+
+4. **Token Refresh**:
+   - When access token expires (within 60 min), UI uses refresh token
+   - Cognito validates refresh token and issues new access token
+   - If refresh token expires, user must re-authenticate
+
+5. **Token Revocation**:
+   - Administrators can revoke tokens via Cognito
+   - Tokens can be invalidated on security events
+   - Device tracking enables selective revocation
+
+### Security Layers Diagram
+
+```mermaid
+graph TB
+    subgraph "Layer 1: Edge Security"
+        WAF[AWS WAF<br/>Rate Limiting<br/>OWASP Rules<br/>IP Filtering]
+        Shield[AWS Shield<br/>DDoS Protection]
+    end
+
+    subgraph "Layer 2: Network Security"
+        ALB[Application Load Balancer<br/>TLS 1.2+<br/>HTTPS Only]
+        SG[Security Groups<br/>Least Privilege<br/>Port Restrictions]
+        VPC[VPC<br/>Private/Public Subnets<br/>NAT Gateways]
+    end
+
+    subgraph "Layer 3: Authentication"
+        Cognito[AWS Cognito<br/>MFA Support<br/>JWT Tokens<br/>Device Tracking]
+        JWT[JWT Validation<br/>Signature Check<br/>Expiration Check<br/>Permission Verify]
+    end
+
+    subgraph "Layer 4: Application Security"
+        CORS[CORS Configuration<br/>Input Validation<br/>Output Encoding<br/>CSRF Protection]
+        Rate[API Rate Limiting<br/>Per User/IP<br/>Token Bucket]
+        Session[Session Management<br/>Secure Cookies<br/>Timeout<br/>Revocation]
+    end
+
+    subgraph "Layer 5: Data Security"
+        Secrets[AWS Secrets Manager<br/>Encrypted Storage<br/>Auto Rotation<br/>IAM Access]
+        Encryption[Encryption at Rest<br/>AES-256<br/>EBS/S3/ECR<br/>Encryption in Transit<br/>TLS 1.2+]
+        VPCEndpoints[VPC Endpoints<br/>Private Access<br/>No Internet Gateway<br/>Encrypted]
+    end
+
+    subgraph "Layer 6: Container Security"
+        NonRoot[Non-Root User<br/>No Privileged Mode<br/>Read-Only FS]
+        Scanning[ECR Scanning<br/>CVE Detection<br/>Block Critical]
+        Limits[Resource Limits<br/>CPU/Memory<br/>DoS Prevention]
+    end
+
+    subgraph "Layer 7: Monitoring & Audit"
+        CloudWatch[CloudWatch Logs<br/>Encrypted Storage<br/>Real-time Alerts]
+        CloudTrail[CloudTrail<br/>Audit Trail<br/>Immutable Logs<br/>API Tracking]
+        GuardDuty[GuardDuty<br/>Threat Detection<br/>Anomaly Detection]
+    end
+
+    User --> WAF
+    WAF --> Shield
+    Shield --> ALB
+    ALB --> SG
+    SG --> VPC
+    VPC --> Cognito
+    Cognito --> JWT
+    JWT --> CORS
+    CORS --> Rate
+    Rate --> Session
+    Session --> Secrets
+    Secrets --> Encryption
+    Encryption --> VPCEndpoints
+    VPCEndpoints --> NonRoot
+    NonRoot --> Scanning
+    Scanning --> Limits
+    Limits --> CloudWatch
+    CloudWatch --> CloudTrail
+    CloudTrail --> GuardDuty
+
+    style WAF fill:#ff6b6b
+    style Cognito fill:#4ecdc4
+    style Secrets fill:#95e1d3
+    style CloudTrail fill:#f38181
+```
+
 ### AWS Deployment Architecture
 
 ```mermaid
