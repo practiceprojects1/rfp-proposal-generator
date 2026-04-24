@@ -211,6 +211,127 @@ The API will be available at `http://localhost:8000`
 
 See `AWS_DEPLOYMENT.md` for detailed API documentation.
 
+## Web UI
+
+The project includes a modern, secure React/Next.js web interface for interacting with the RFP Proposal Generator.
+
+### Features
+
+- **Secure Authentication**: AWS Cognito integration with MFA support
+- **Real-time Chat**: Interactive chat interface with the AI agent
+- **Quick Actions**: Pre-configured prompts for common tasks
+- **Responsive Design**: Works on desktop, tablet, and mobile
+- **Dark Mode Support**: Automatic theme switching
+- **Session Management**: Secure session handling with token refresh
+
+### Local Development
+
+```bash
+cd ui
+npm install
+npm run dev
+```
+
+The UI will be available at `http://localhost:3000`
+
+### Building for Production
+
+```bash
+cd ui
+npm run build
+npm start
+```
+
+### Docker Deployment
+
+```bash
+cd ui
+docker build -t rfp-proposal-ui .
+docker run -p 3000:3000 rfp-proposal-ui
+```
+
+### UI Configuration
+
+Create a `.env.local` file in the `ui/` directory:
+
+```bash
+NEXT_PUBLIC_API_URL=http://your-api-url
+NEXT_PUBLIC_COGNITO_USER_POOL_ID=your-user-pool-id
+NEXT_PUBLIC_COGNITO_CLIENT_ID=your-client-id
+NEXT_PUBLIC_COGNITO_REGION=us-east-1
+```
+
+## Terraform Deployment
+
+The project uses Terraform for infrastructure as code (IaC), providing better security, reproducibility, and scalability compared to CloudFormation.
+
+### Prerequisites
+
+- Terraform >= 1.5.0
+- AWS CLI configured
+- S3 bucket for Terraform state (optional)
+- DynamoDB table for state locking (optional)
+
+### Quick Deploy with Terraform
+
+```bash
+cd terraform
+
+# Copy and configure variables
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your values
+
+# Initialize Terraform
+terraform init
+
+# Plan deployment
+terraform plan
+
+# Apply changes
+terraform apply
+```
+
+### Terraform Features
+
+- **Multi-AZ VPC**: 3 availability zones for high availability
+- **Security Groups**: Least privilege network access
+- **AWS Cognito**: User authentication and authorization
+- **ECS Fargate**: Serverless container orchestration
+- **Application Load Balancer**: Traffic distribution with WAF
+- **WAF**: Web Application Firewall with rate limiting
+- **Auto Scaling**: Automatic scaling based on CPU/memory
+- **Secrets Manager**: Secure credential storage
+- **CloudWatch**: Monitoring and logging
+- **VPC Endpoints**: Private access to AWS services
+
+### Terraform State Management
+
+For production use, configure remote state:
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "your-terraform-state-bucket"
+    key            = "rfp-proposal-generator/terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "terraform-state-locks"
+  }
+}
+```
+
+### Infrastructure Security
+
+The Terraform configuration implements:
+- **Network Isolation**: Private subnets for ECS tasks
+- **Encryption**: All resources encrypted at rest
+- **IAM Roles**: Least privilege access
+- **WAF Protection**: Rate limiting and OWASP protection
+- **VPC Endpoints**: Private access to AWS services
+- **Security Groups**: Strict port and protocol restrictions
+
+See `terraform/complete_infra.tf` for the complete infrastructure configuration.
+
 ## Usage
 
 Interact with the agent to:
@@ -223,9 +344,18 @@ Interact with the agent to:
 
 ```
 rfp-proposal-generator/
-├── main.py              # Main agent entry point
+├── main.py              # Main agent entry point (CLI)
+├── api.py               # FastAPI REST API server
 ├── tools/               # Custom tools for RFP search and analysis
 ├── skills/              # Domain-specific skills
+├── ui/                  # React/Next.js web interface
+│   ├── src/             # Source code
+│   ├── package.json     # Dependencies
+│   └── Dockerfile       # UI container
+├── terraform/           # Infrastructure as Code
+│   ├── main.tf          # Terraform configuration
+│   ├── complete_infra.tf # Complete infrastructure
+│   └── deploy.sh        # Deployment script
 ├── proposals/           # Generated proposals
 ├── memories/            # Persistent memory storage
 └── requirements.txt     # Python dependencies
@@ -556,12 +686,181 @@ For more detailed AWS deployment information, see [AWS_DEPLOYMENT.md](AWS_DEPLOY
 
 ## Security
 
-This project includes comprehensive security features:
+This project implements enterprise-grade security across all layers:
 
-- **CI/CD Pipeline**: Automated security scanning (SAST, dependency scanning, secrets detection)
-- **Pre-commit Hooks**: Local security checks before commits
-- **Security Policy**: Documented in `SECURITY.md`
-- **Container Security**: Non-root user, minimal dependencies
-- **Secrets Management**: AWS Secrets Manager integration
+### Infrastructure Security
 
-See `SECURITY.md` for detailed security information.
+#### Network Security
+- **Multi-AZ VPC Architecture**: 3 availability zones for high availability and fault tolerance
+- **Public/Private Subnet Segregation**: ECS tasks in private subnets, ALB in public subnets
+- **Security Groups**: Least privilege access with specific port restrictions
+- **NAT Gateways**: One per AZ for secure outbound internet access
+- **VPC Endpoints**: Private access to AWS Secrets Manager and Bedrock (no internet gateway needed)
+- **DDoS Protection**: AWS Shield Standard automatically enabled
+
+#### Web Application Firewall (WAF)
+- **AWS WAF v2**: Protects against common web exploits
+- **Rate Limiting**: 2000 requests per minute per IP to prevent abuse
+- **AWS Managed Rules**: Core rule set for OWASP Top 10 protection
+- **IP Reputation**: Blocks known malicious IPs
+- **Bot Control**: Mitigates automated bot attacks
+
+#### Load Balancer Security
+- **HTTPS Only**: Automatic redirect from HTTP to HTTPS
+- **TLS 1.2+**: Modern encryption protocols only
+- **SSL/TLS Termination**: At the load balancer for performance
+- **Access Logging**: All requests logged to encrypted S3 bucket
+- **Health Checks**: Continuous monitoring of backend health
+
+### Authentication & Authorization
+
+#### AWS Cognito
+- **User Authentication**: Secure user sign-up/sign-in
+- **MFA Support**: Optional multi-factor authentication
+- **Password Policy**: 12+ characters, complexity requirements
+- **Device Tracking**: Recognized devices for enhanced security
+- **Account Recovery**: Email-based recovery flow
+- **Token Revocation**: Ability to revoke compromised tokens
+- **Session Management**: Configurable token lifetimes (60 min access, 30 day refresh)
+
+#### IAM Security
+- **Least Privilege**: ECS task roles have only necessary permissions
+- **Role Separation**: Execution role vs. task role for separation of concerns
+- **No Root Access**: All operations use IAM roles
+- **Resource-Based Policies**: Fine-grained access control
+
+### Data Security
+
+#### Encryption at Rest
+- **EBS Encryption**: All EBS volumes encrypted by default
+- **S3 Encryption**: Server-side encryption with AES-256
+- **ECR Encryption**: Container images encrypted
+- **Secrets Manager**: Automatic encryption of all secrets
+- **RDS Encryption**: Database encryption (if used)
+
+#### Encryption in Transit
+- **TLS 1.2+**: All communications encrypted
+- **Certificate Management**: ACM for certificate lifecycle
+- **HTTPS Only**: No unencrypted HTTP traffic
+- **VPC Endpoints**: Encrypted traffic to AWS services
+
+#### Secrets Management
+- **AWS Secrets Manager**: Secure storage for API keys and credentials
+- **Automatic Rotation**: Support for automatic secret rotation
+- **IAM-Based Access**: Only authorized roles can access secrets
+- **Audit Logging**: All secret access logged to CloudTrail
+- **No Hardcoded Secrets**: All secrets externalized
+
+### Container Security
+
+#### Docker Security
+- **Non-Root User**: Containers run as non-root user (appuser)
+- **Minimal Base Image**: Python slim image with minimal attack surface
+- **Security Updates**: Regular security patching
+- **No Privileged Mode**: Containers run without privileged mode
+- **Read-Only Root**: Filesystem is read-only where possible
+- **Resource Limits**: CPU and memory limits to prevent DoS
+
+#### Image Scanning
+- **ECR Scanning**: Automatic vulnerability scanning on push
+- **CVE Detection**: Identifies known vulnerabilities
+- **Block on Critical**: Can block deployment of vulnerable images
+- **CI/CD Integration**: Scanning integrated in pipeline
+
+### Application Security
+
+#### API Security
+- **CORS Configuration**: Controlled cross-origin resource sharing
+- **Rate Limiting**: API rate limiting per user/IP
+- **Input Validation**: All inputs validated and sanitized
+- **Output Encoding**: Prevents XSS attacks
+- **SQL Injection Prevention**: Parameterized queries
+- **CSRF Protection**: Cross-site request forgery tokens
+
+#### Session Security
+- **Secure Cookies**: HttpOnly, Secure, SameSite flags
+- **Session Timeout**: Automatic session expiration
+- **Token Refresh**: Secure token refresh mechanism
+- **Session Revocation**: Ability to revoke sessions
+
+### CI/CD Security
+
+#### Pipeline Security
+- **SAST**: Static application security testing (Bandit, Semgrep)
+- **Dependency Scanning**: Safety, pip-audit, Trivy
+- **Secrets Detection**: Gitleaks, TruffleHog
+- **Container Scanning**: Docker image vulnerability scanning
+- **IaC Security**: Checkov for infrastructure security
+- **License Compliance**: Automated license checking
+
+#### Pre-Commit Hooks
+- **Secret Detection**: Prevents secrets from being committed
+- **Security Linting**: Code quality and security checks
+- **Dependency Checks**: Vulnerability scanning before commit
+- **Format Validation**: Ensures consistent code formatting
+
+### Monitoring & Logging
+
+#### Security Monitoring
+- **CloudWatch Logs**: Centralized logging with encryption
+- **CloudTrail**: Audit trail of all API calls
+- **VPC Flow Logs**: Network traffic monitoring
+- **GuardDuty**: Threat detection and alerting
+- **Security Hub**: Centralized security findings
+
+#### Alerting
+- **CloudWatch Alarms**: Automated alerts on security events
+- **SNS Notifications**: Real-time security alerts
+- **Dashboard**: Security metrics visualization
+- **Anomaly Detection**: Unusual activity detection
+
+### Compliance
+
+#### Standards Compliance
+- **SOC 2 Type II**: Security and availability controls
+- **HIPAA Ready**: Healthcare data protection (if needed)
+- **GDPR Compliant**: Data protection and privacy
+- **PCI DSS**: Payment card industry standards (if needed)
+- **NIST Framework**: Cybersecurity framework alignment
+
+### Availability & Resilience
+
+#### High Availability
+- **Multi-AZ Deployment**: Resources distributed across 3 AZs
+- **Auto Scaling**: Automatic scaling based on demand
+- **Health Checks**: Continuous health monitoring
+- **Graceful Degradation**: Degrades gracefully under load
+- **Circuit Breakers**: Prevents cascading failures
+
+#### Disaster Recovery
+- **Multi-Region Option**: Can be deployed across regions
+- **Automated Backups**: Regular backup schedules
+- **Point-in-Time Recovery**: Ability to restore to any point
+- **Infrastructure as Code**: Quick reprovisioning if needed
+
+### Security Best Practices Implemented
+
+✅ **Defense in Depth**: Multiple layers of security controls
+✅ **Zero Trust**: Verify explicitly, least privilege access
+✅ **Encryption Everywhere**: Data encrypted at rest and in transit
+✅ **Audit Everything**: Comprehensive logging and monitoring
+✅ **Automated Security**: Security scanning in CI/CD pipeline
+✅ **Regular Updates**: Automated security patching
+✅ **Incident Response**: Documented response procedures
+✅ **Security Training**: Team trained on security best practices
+
+### Security Configuration Files
+
+- `SECURITY.md` - Detailed security policy and procedures
+- `.pre-commit-config.yaml` - Local security hooks
+- `.github/workflows/security-ci.yml` - CI/CD security pipeline
+- `terraform/complete_infra.tf` - Infrastructure security configuration
+
+### Regular Security Reviews
+
+- **Quarterly**: Security architecture reviews
+- **Monthly**: Dependency vulnerability assessments
+- **Weekly**: Security log analysis
+- **Continuous**: Automated security scanning
+
+For detailed security procedures and incident response, see `SECURITY.md`.
