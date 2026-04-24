@@ -1,0 +1,19 @@
+# Codeowners file for security approvals
+
+# Security team owns all security-related files
+.github/workflows/security-ci.yml @security-team
+SECURITY.md @security-team
+.pre-commit-config.yaml @security-team
+.github/dependabot.yml @security-team
+
+# Core team owns main code
+*.py @core-team
+tools/ @core-team
+main.py @core-team
+
+# DevOps team owns CI/CD
+.github/workflows/ @devops-team
+Dockerfile @devops-team
+
+# Default: maintainers own everything
+* @maintainers

@@ -1,0 +1,120 @@
+# Pre-commit hooks for security-focused development
+repos:
+  # Security: Detect secrets in code
+  - repo: https://github.com/YNL/ystream
+    rev: 0.1.0
+    hooks:
+      - id: ystream
+
+  # Security: Gitleaks for secret detection
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks
+
+  # Security: TruffleHog for secret detection
+  - repo: https://github.com/trufflesecurity/trufflehog
+    rev: v3.68.3
+    hooks:
+      - id: trufflehog
+
+  # Security: Bandit for Python security issues
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.6
+    hooks:
+      - id: bandit
+        args: ['-c', 'pyproject.toml']
+        additional_dependencies: ['bandit[toml]']
+
+  # Security: Semgrep for static analysis
+  - repo: https://github.com/returntocorp/semgrep
+    rev: v1.45.0
+    hooks:
+      - id: semgrep
+        args: ['--config', 'auto', '--error']
+
+  # Code Quality: Black formatter
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+        language_version: python3.11
+
+  # Code Quality: isort for import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ['--profile', 'black']
+
+  # Code Quality: Flake8 linting
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: ['--max-line-length=127', '--extend-ignore=E203']
+
+  # Code Quality: Pylint
+  - repo: https://github.com/pycqa/pylint
+    rev: v3.1.0
+    hooks:
+      - id: pylint
+        args: ['--exit-zero']
+
+  # Security: Check for hardcoded passwords
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package.lock.json
+
+  # Security: Check for common security issues
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.3
+    hooks:
+      - id: python-safety-dependencies-check
+        files: requirements.txt
+
+  # Security: Check for dependency vulnerabilities
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+      - id: forbid-crlf
+      - id: forbid-tabs
+
+  # General: End of file fixer
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-symlinks
+      - id: destroyed-symlinks
+
+  # Security: Check for shell script security issues
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+
+  # Docker security: Hadolint for Dockerfile linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        args: ['--ignore', 'DL3008', '--ignore', 'DL3013']
+
+  # License: Check for proper license headers
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-license
+    rev: v1.0.0
+    hooks:
+      - id: license-file
+        args: ['--spdx-id', 'MIT']

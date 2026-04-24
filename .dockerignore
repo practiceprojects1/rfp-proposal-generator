@@ -1,0 +1,73 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+venv
+env
+ENV
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+secrets/
+*.secrets
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov
+*.cover
+.hypothesis
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Proposals (may contain sensitive info)
+proposals/
+*.md
+!README.md
+
+# Memory storage
+memories/
+
+# CI/CD
+.travis.yml
+.circleci
+appveyor.yml
