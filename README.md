@@ -9,6 +9,8 @@ An AI-powered system that searches for federal government Requests for Proposals
 - **Proposal Generation**: Creates customized proposals highlighting Devin AI's strengths
 - **Memory & Tracking**: Remembers processed RFPs to avoid duplicates
 - **File Management**: Saves proposals and tracks progress
+- **REST API**: FastAPI-based web service for easy integration
+- **AWS Bedrock Support**: Deploy to AWS with managed foundation model inference
 
 ## Architecture
 
@@ -37,6 +39,31 @@ cp .env.example .env
 python main.py
 ```
 
+## Running as API Server
+
+Start the FastAPI server:
+
+```bash
+# Using direct Anthropic API
+python api.py
+
+# Using AWS Bedrock
+USE_BEDROCK=true python api.py
+```
+
+The API will be available at `http://localhost:8000`
+
+### API Endpoints
+
+- `GET /` - Health check
+- `POST /chat` - Chat with the agent
+- `POST /chat/stream` - Streaming chat
+- `POST /rfp/search` - Search for RFPs
+- `POST /rfp/analyze` - Analyze an RFP
+- `POST /proposal/generate` - Generate a proposal
+
+See `AWS_DEPLOYMENT.md` for detailed API documentation.
+
 ## Usage
 
 Interact with the agent to:
@@ -63,3 +90,31 @@ rfp-proposal-generator/
 - `analyze_rfp`: Analyze RFP documents
 - `generate_proposal`: Generate tailored proposals
 - `check_processed_rfps`: Check if an RFP has been processed
+
+## AWS Deployment
+
+Deploy to AWS ECS Fargate with AWS Bedrock:
+
+```bash
+cd rfp-proposal-generator
+./aws/deploy.sh
+```
+
+See `AWS_DEPLOYMENT.md` for detailed deployment instructions, including:
+- ECS Fargate setup
+- Application Load Balancer configuration
+- AWS Bedrock integration
+- Security and IAM permissions
+- Monitoring and logging
+
+## Security
+
+This project includes comprehensive security features:
+
+- **CI/CD Pipeline**: Automated security scanning (SAST, dependency scanning, secrets detection)
+- **Pre-commit Hooks**: Local security checks before commits
+- **Security Policy**: Documented in `SECURITY.md`
+- **Container Security**: Non-root user, minimal dependencies
+- **Secrets Management**: AWS Secrets Manager integration
+
+See `SECURITY.md` for detailed security information.
