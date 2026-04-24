@@ -1,5 +1,5 @@
 # Core dependencies
-langchain>=0.3.0
+langchain>=0.3.28
 langgraph>=0.2.0
 deepagents>=0.1.0
 
