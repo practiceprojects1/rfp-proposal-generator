@@ -35,7 +35,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Bandit results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: bandit-results.sarif
@@ -51,7 +51,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Semgrep results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: semgrep.sarif
@@ -103,7 +103,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: trivy-results.sarif
@@ -230,7 +230,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Checkov results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: checkov-results.sarif
@@ -260,7 +260,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Trivy container results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: trivy-container-results.sarif
@@ -360,6 +360,6 @@ jobs:
           publish_results: true
 
       - name: Upload Scorecard results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: results.sarif
